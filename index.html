@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HogarFinance 🏡 - Control Económico Familiar</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Sistema completo de gestión económica del hogar con control de ingresos central, asignación de créditos a miembros y registro de gastos con filtros avanzados.">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Estilos Personalizados -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dark transition-colors duration-300">
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- PANTALLA DE LOGIN CON CONTRASEÑA -->
+  <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4 transition-opacity duration-300">
+    <div class="w-full max-w-md p-8 rounded-3xl glass-card border border-slate-700/60 shadow-2xl space-y-6">
+      
+      <!-- LOGO & BIENVENIDA -->
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 mx-auto flex items-center justify-center text-white shadow-xl shadow-indigo-500/30">
+          <i data-lucide="lock" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-2xl font-extrabold tracking-tight">HogarFinance</h2>
+        <p class="text-xs opacity-60">Ingresa tus credenciales asignadas para acceder</p>
+      </div>
+
+      <!-- FORMULARIO DE INICIO DE SESIÓN -->
+      <form id="form-login" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Correo Electrónico / Usuario:</label>
+          <div class="relative">
+            <input type="email" id="login-email" required placeholder="tu-correo@hogar.com" value="daniel@hogar.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Contraseña:</label>
+          <div class="relative">
+            <input type="password" id="login-password" required placeholder="••••••••" value="admin" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <i data-lucide="key" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition">
+          Iniciar Sesión
+        </button>
+      </form>
+
+      <!-- SELECCIÓN RÁPIDA DE CUENTAS DEMO PARA PRUEBAS -->
+      <div class="pt-4 border-t border-slate-800 space-y-2">
+        <p class="text-[11px] font-semibold text-center opacity-60 uppercase tracking-wider">Cuentas Demo para Pruebas en tu máquina:</p>
+        <div id="demo-accounts-list" class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Creado dinámicamente -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ENCABEZADO DE NAVEGACIÓN -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-slate-900/80 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- LOGO & TITULO -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+          <i data-lucide="home" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+            HogarFinance <span class="text-xs font-normal text-indigo-400">v2.0</span>
+          </h1>
+          <p class="text-[11px] opacity-60 hidden sm:block">Administración Económica del Hogar</p>
+        </div>
+      </div>
+
+      <!-- PERFIL DE USUARIO LOGUEADO & SALIR -->
+      <div class="flex items-center gap-3">
+        
+        <!-- Indicador de Estado DB -->
+        <button id="btn-open-supabase-modal" class="hidden sm:flex items-center">
+          <div id="db-status-badge"></div>
+        </button>
+
+        <!-- Perfil Activo Badge -->
+        <div id="logged-user-profile-badge" class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+          <!-- Cargado dinámicamente -->
+        </div>
+
+        <!-- Role Badge -->
+        <div id="header-role-badge"></div>
+
+        <!-- Botón Cerrar Sesión -->
+        <button id="btn-logout" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition" title="Cerrar Sesión">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Toggle Modo Oscuro/Claro -->
+        <button id="theme-toggle-btn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          <i data-lucide="sun" class="w-5 h-5 text-amber-400"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- BARRA SUPERIOR DE ACCIONES RÁPIDAS -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">Panel de Control del Hogar</h2>
+        <p class="text-sm opacity-60">Resumen financiero, presupuestos asignados y registro de consumos.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Acciones Exclusivas de Administrador -->
+        <button id="btn-open-ingreso-modal" class="admin-only px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Registrar Ingreso</span>
+        </button>
+
+        <button id="btn-open-credito-modal" class="admin-only px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-amber-600/20 transition">
+          <i data-lucide="credit-card" class="w-4 h-4"></i>
+          <span>Asignar Crédito</span>
+        </button>
+
+        <button id="btn-open-user-modal" class="admin-only px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm flex items-center gap-2 transition">
+          <i data-lucide="user-plus" class="w-4 h-4 text-indigo-400"></i>
+          <span class="hidden sm:inline">Nuevo Miembro</span>
+        </button>
+
+        <!-- Acción para Cualquier Miembro -->
+        <button id="btn-open-gasto-modal" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition">
+          <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+          <span>Registrar Gasto</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TARJETAS METRICAS GENERALES (RESUMEN FINANCIERO DEL HOGAR Y PERSONAL) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Saldo Real del Hogar (Principal) e Ingresos Totales (Secundario) -->
+      <div class="p-5 rounded-2xl glass-card relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider opacity-60">Saldo Real del Hogar</span>
+          <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="metric-saldo-real-hogar" class="text-2xl font-extrabold text-emerald-400">$0.00</div>
+        <div class="flex items-center justify-between text-[11px] opacity-70 mt-1">
+          <span>Ingresos Totales: <strong id="metric-ingresos-hogar" class="text-slate-300">$0.00</strong></span>
+        </div>
+      </div>
+
+      <!-- Créditos Totales Asignados a la Familia -->
+      <div class="p-5 rounded-2xl glass-card relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider opacity-60">Créditos a Familia</span>
+          <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+            <i data-lucide="pie-chart" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="metric-creditos-hogar" class="text-2xl font-extrabold text-indigo-400">$0.00</div>
+        <p class="text-xs opacity-60 mt-1">Suma de presupuestos asignados</p>
+      </div>
+
+      <!-- Gastos Totales de la Familia -->
+      <div class="p-5 rounded-2xl glass-card relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider opacity-60">Gastos Totales Familia</span>
+          <div class="p-2 rounded-xl bg-red-500/10 text-red-400">
+            <i data-lucide="trending-down" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="metric-gastos-hogar" class="text-2xl font-extrabold text-red-400">$0.00</div>
+        <p class="text-xs opacity-60 mt-1">Consumo global acumulado</p>
+      </div>
+
+      <!-- Tu Saldo Personal Disponible -->
+      <div class="p-5 rounded-2xl glass-card relative overflow-hidden border-2 border-indigo-500/30 pulse-card">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-300">Tu Saldo Disponible</span>
+          <div class="p-2 rounded-xl bg-indigo-600 text-white">
+            <i data-lucide="user-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div id="metric-mi-saldo" class="text-2xl font-extrabold text-emerald-400">$0.00</div>
+        <div class="flex items-center justify-between text-[11px] opacity-70 mt-1">
+          <span>Crédito: <strong id="metric-mi-credito">$0</strong></span>
+          <span>Gastado: <strong id="metric-mis-gastos">$0</strong></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECCIÓN DE MIEMBROS & BARRAS DE CRÉDITO -->
+    <div class="p-6 rounded-2xl glass-card space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700/40 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-lg">Estado de Créditos por Miembro de la Familia</h3>
+        </div>
+        <span class="text-xs opacity-60">Visualización de consumo individual</span>
+      </div>
+
+      <div id="members-progress-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Cargado dinámicamente -->
+      </div>
+    </div>
+
+    <!-- SECCIÓN EXPLORADOR DE GASTOS GLOBAL (CON FILTROS ESPECIALES) -->
+    <div class="p-6 rounded-2xl glass-card space-y-5">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/40 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="search" class="w-5 h-5 text-indigo-400"></i>
+            <h3 class="font-bold text-lg">Explorador Global de Gastos del Hogar</h3>
+          </div>
+          <p class="text-xs opacity-60">Transparencia total: Consulta los consumos de todos los miembros con filtros especiales.</p>
+        </div>
+        <span id="expenses-filtered-count" class="text-xs font-semibold px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 self-start md:self-auto">
+          Cargando...
+        </span>
+      </div>
+
+      <!-- FILTROS ESPECIALES -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-800/40 p-4 rounded-xl border border-slate-700/40">
+        
+        <!-- Filtro: Miembro -->
+        <div>
+          <label class="block text-xs font-semibold opacity-70 mb-1">👤 Filtrar por Miembro:</label>
+          <select id="filter-member" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+
+        <!-- Filtro: Categoría -->
+        <div>
+          <label class="block text-xs font-semibold opacity-70 mb-1">🏷️ Filtrar por Categoría:</label>
+          <select id="filter-category" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+
+        <!-- Filtro: Rango de Fecha -->
+        <div>
+          <label class="block text-xs font-semibold opacity-70 mb-1">📅 Período de Tiempo:</label>
+          <select id="filter-date" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="all">🗓️ Todo el Historial</option>
+            <option value="today">⚡ Hoy</option>
+            <option value="week">📅 Últimos 7 Días</option>
+            <option value="month">📆 Últimos 30 Días</option>
+          </select>
+        </div>
+
+        <!-- Filtro: Búsqueda por Texto -->
+        <div>
+          <label class="block text-xs font-semibold opacity-70 mb-1">🔎 Búsqueda Rápida:</label>
+          <div class="relative">
+            <input type="text" id="filter-search" placeholder="Ej: Supermercado, Cine..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400"></i>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TABLA DE GASTOS (DESKTOP) -->
+      <div class="hidden sm:block overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-xs font-semibold uppercase tracking-wider opacity-60">
+              <th class="py-3 px-4">Fecha</th>
+              <th class="py-3 px-4">Miembro</th>
+              <th class="py-3 px-4">Categoría</th>
+              <th class="py-3 px-4">Concepto / Descripción</th>
+              <th class="py-3 px-4 text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody id="expenses-table-body">
+            <!-- Cargado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TARJETAS DE GASTOS (MÓVIL) -->
+      <div id="expenses-mobile-cards" class="sm:hidden grid grid-cols-1 gap-3">
+        <!-- Cargado dinámicamente -->
+      </div>
+    </div>
+
+    <!-- SECCIÓN ANALÍTICA & GRÁFICOS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Gráfico Categorías -->
+      <div class="p-6 rounded-2xl glass-card space-y-4">
+        <div class="flex items-center gap-2 border-b border-slate-700/40 pb-3">
+          <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-base">Distribución de Gastos por Categoría</h3>
+        </div>
+        <div class="h-64 relative">
+          <canvas id="chart-categories"></canvas>
+        </div>
+      </div>
+
+      <!-- Gráfico Comparativo por Miembro -->
+      <div class="p-6 rounded-2xl glass-card space-y-4">
+        <div class="flex items-center gap-2 border-b border-slate-700/40 pb-3">
+          <i data-lucide="bar-chart-2" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-base">Crédito Asignado vs Consumo por Miembro</h3>
+        </div>
+        <div class="h-64 relative">
+          <canvas id="chart-members"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ====================================================================
+       MODALES DE INTERACCIÓN
+       ==================================================================== -->
+
+  <!-- MODAL: REGISTRAR INGRESO (ADMIN) -->
+  <div id="modal-ingreso" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-emerald-400">
+          <i data-lucide="plus-circle" class="w-5 h-5"></i> Registrar Ingreso al Hogar
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-ingreso" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Monto del Ingreso ($):</label>
+          <input type="number" step="0.01" id="ingreso-monto" required placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Fuente de Ingreso:</label>
+          <input type="text" id="ingreso-fuente" required placeholder="Ej: Sueldo, Venta, Honorarios..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Notas u Observación:</label>
+          <textarea id="ingreso-desc" rows="2" placeholder="Detalles opcionales..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn-close-modal px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">Guardar Ingreso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ASIGNAR CRÉDITO (ADMIN) -->
+  <div id="modal-credito" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-amber-400">
+          <i data-lucide="credit-card" class="w-5 h-5"></i> Asignar Crédito a Miembro
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-credito" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Miembro de la Familia:</label>
+          <select id="credito-target-user" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Monto a Asignar ($):</label>
+          <input type="number" step="0.01" id="credito-monto" required placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Nota o Período:</label>
+          <input type="text" id="credito-nota" placeholder="Ej: Presupuesto mensual, Mesada..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn-close-modal px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold">Asignar Crédito</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR GASTO (TODOS) -->
+  <div id="modal-gasto" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-indigo-400">
+          <i data-lucide="shopping-bag" class="w-5 h-5"></i> Registrar Nuevo Gasto
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-gasto" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Persona que Realizó el Gasto:</label>
+          <select id="gasto-user-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Categoría del Gasto:</label>
+          <select id="gasto-category-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Monto del Gasto ($):</label>
+          <input type="number" step="0.01" id="gasto-monto" required placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Descripción / Concepto:</label>
+          <input type="text" id="gasto-desc" required placeholder="Ej: Compra de supermercado, pasaje..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn-close-modal px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Guardar Gasto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR MIEMBRO (ADMIN) -->
+  <div id="modal-usuario" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-indigo-400">
+          <i data-lucide="user-plus" class="w-5 h-5"></i> Agregar Nuevo Miembro de la Familia
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-usuario" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Nombre Completo:</label>
+          <input type="text" id="user-nombre" required placeholder="Ej: Ana María" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Correo Electrónico:</label>
+          <input type="email" id="user-email" required placeholder="ana@hogar.com" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Contraseña Asignada por Admin 🔑:</label>
+          <input type="text" id="user-password" required placeholder="Ej: clave123" value="clave123" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none">
+          <p class="text-[10px] opacity-60 mt-1">Esta contraseña la utilizará el usuario para iniciar sesión.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Rol del Sistema:</label>
+          <select id="user-rol" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="member">👤 Miembro Familiar</option>
+            <option value="admin">👑 Administrador</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Crédito Inicial Asignado ($):</label>
+          <input type="number" step="0.01" id="user-credito-inicial" placeholder="0.00" value="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn-close-modal px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Crear Miembro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CAMBIAR / RECONSTRUCT CONTRASEÑA DE MIEMBRO (ADMIN) -->
+  <div id="modal-password" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-amber-400">
+          <i data-lucide="key" class="w-5 h-5"></i> Modificar Contraseña de Miembro
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-change-password" class="space-y-4">
+        <input type="hidden" id="pwd-member-id">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Miembro:</label>
+          <input type="text" id="pwd-member-name" readonly class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm font-semibold opacity-75 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Nueva Contraseña Asignada:</label>
+          <input type="text" id="pwd-new-password" required placeholder="Ingresa la nueva clave..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn-close-modal px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold">Guardar Nueva Clave</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR MIEMBRO COMPLETO (ADMIN) -->
+  <div id="modal-editar-usuario" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-indigo-400">
+          <i data-lucide="edit" class="w-5 h-5"></i> Editar Perfil de Miembro
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-edit-usuario" class="space-y-4">
+        <input type="hidden" id="edit-user-id">
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Nombre Completo:</label>
+          <input type="text" id="edit-user-nombre" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Correo Electrónico:</label>
+          <input type="email" id="edit-user-email" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Contraseña Asignada:</label>
+          <input type="text" id="edit-user-password" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Rol del Sistema:</label>
+          <select id="edit-user-rol" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="member">👤 Miembro Familiar</option>
+            <option value="admin">👑 Administrador</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Crédito Asignado ($):</label>
+          <input type="number" step="0.01" id="edit-user-credito" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn-close-modal px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONEXIÓN SUPABASE -->
+  <div id="modal-supabase" class="modal-overlay">
+    <div class="modal-container bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-lg shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-blue-400">
+          <i data-lucide="database" class="w-5 h-5"></i> Configuración de Base de Datos Supabase
+        </h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <p class="text-xs opacity-75 leading-relaxed">
+        Actualmente estás en <strong>Modo Demo Local</strong> (todos los cambios se guardan localmente en tu navegador). Para enlazar tu base de datos de Supabase en la nube, ingresa tus credenciales a continuación:
+      </p>
+
+      <form id="form-supabase-config" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Supabase Project URL:</label>
+          <input type="url" id="supa-url" placeholder="https://xyzcompany.supabase.co" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold mb-1 opacity-80">Supabase Anon Key:</label>
+          <input type="text" id="supa-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+          <button type="button" id="btn-reset-demo" class="text-xs text-amber-400 hover:underline">Reiniciar Datos Demo</button>
+          <div class="flex gap-2">
+            <button type="button" id="btn-clear-supabase" class="px-3 py-1.5 rounded-xl bg-slate-800 text-xs text-red-400 hover:bg-slate-700">Desconectar</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">Conectar Supabase</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPTS DE APLICACIÓN -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
