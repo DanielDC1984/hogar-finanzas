@@ -27,10 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuthSession();
 
   // ------------------------------------------------------------------
-  // AUTENTICACIÓN & SESIÓN
+  // AUTENTICACIÓN & SESIÓN (OPTIMIZADO CON CACHÉ)
   // ------------------------------------------------------------------
-  function checkAuthSession() {
-    const data = dbManager.getMockData();
+  async function checkAuthSession() {
+    const data = await dbManager.loadData();
     renderDemoAccountsList(data.profiles);
 
     if (loggedUserId) {
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeProfileId = user.id;
         currentRole = user.rol;
         hideLoginScreen();
-        refreshUI();
+        await refreshUI();
         return;
       }
     }
@@ -85,13 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('login-email').value.trim().toLowerCase();
     const password = document.getElementById('login-password').value.trim();
 
-    const data = dbManager.getMockData();
-    const user = data.profiles.find(p => p.email.toLowerCase() === email && (p.password === password || (!p.password && password === '123456')));
+    const data = await dbManager.loadData();
+    const user = data.profiles.find(p => p.email.toLowerCase() === email && (p.password === password || (!p.password && password === 'admin')));
 
     if (user) {
       loggedUserId = user.id;
@@ -101,9 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       hideLoginScreen();
       showToast(`¡Bienvenido de nuevo, ${user.nombre}!`, 'success');
-      refreshUI();
+      await refreshUI();
     } else {
-      showToast('❌ Correo o contraseña incorrectos. Revisa las cuentas demo.', 'danger');
+      showToast('❌ Correo o contraseña incorrectos.', 'danger');
     }
   }
 
@@ -227,17 +227,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // ------------------------------------------------------------------
   // ACTUALIZACIÓN DE INTERFAZ & RENDER
   // ------------------------------------------------------------------
-  function refreshUI() {
-    const data = dbManager.getMockData();
+  async function refreshUI() {
+    const data = await dbManager.loadData();
 
     // Actualizar indicador de Supabase / Demo
     const statusBadge = document.getElementById('db-status-badge');
     if (statusBadge) {
       if (dbManager.isRealSupabase) {
-        statusBadge.className = 'px-3 py-1 text-xs rounded-full font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1.5';
+        statusBadge.className = 'px-3 py-1 text-xs rounded-full font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1.5 cursor-pointer';
         statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span> 🔵 Supabase Conectado`;
       } else {
-        statusBadge.className = 'px-3 py-1 text-xs rounded-full font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5';
+        statusBadge.className = 'px-3 py-1 text-xs rounded-full font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 cursor-pointer';
         statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> 🟢 Modo Demo Local`;
       }
     }
@@ -258,10 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMembersOverview(data);
 
     // Renderizar tabla de gastos con filtros
-    renderExpenses();
+    renderExpenses(data);
 
     // Renderizar Gráficos Analíticos
-    renderCharts();
+    renderCharts(data);
 
     // Re-inicializar iconos de Lucide
     lucide.createIcons();
@@ -815,9 +815,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ------------------------------------------------------------------
-  // MANEJADORES DE FORMULARIOS & ACCIONES DE DATOS
+  // MANEJADORES DE FORMULARIOS & ACCIONES DE DATOS (ASYNC)
   // ------------------------------------------------------------------
-  function handleAddIngreso(e) {
+  async function handleAddIngreso(e) {
     e.preventDefault();
     const monto = parseFloat(document.getElementById('ingreso-monto').value);
     const fuente = document.getElementById('ingreso-fuente').value.trim();
@@ -828,8 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const mock = dbManager.getMockData();
-    mock.ingresos.push({
+    await dbManager.addIngreso({
       id: 'ing-' + Date.now(),
       monto,
       fuente,
@@ -838,14 +837,13 @@ document.addEventListener('DOMContentLoaded', () => {
       registrado_por: activeProfileId
     });
 
-    dbManager.saveMockData(mock);
     closeModal('modal-ingreso');
     document.getElementById('form-ingreso').reset();
     showToast(`¡Ingreso de $${monto.toFixed(2)} registrado con éxito!`, 'success');
-    refreshUI();
+    await refreshUI();
   }
 
-  function handleAssignCredito(e) {
+  async function handleAssignCredito(e) {
     e.preventDefault();
     const targetUserId = document.getElementById('credito-target-user').value;
     const monto = parseFloat(document.getElementById('credito-monto').value);
@@ -856,28 +854,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const mock = dbManager.getMockData();
-    const user = mock.profiles.find(p => p.id === targetUserId);
-    if (user) {
-      user.credito_asignado = parseFloat(user.credito_asignado) + monto;
-      
-      mock.asignaciones.push({
-        id: 'asig-' + Date.now(),
-        profile_id: targetUserId,
-        monto,
-        nota,
-        fecha: new Date().toISOString()
-      });
+    const data = await dbManager.loadData();
+    const user = data.profiles.find(p => p.id === targetUserId);
+    
+    await dbManager.addAsignacion({
+      id: 'asig-' + Date.now(),
+      profile_id: targetUserId,
+      monto,
+      nota,
+      fecha: new Date().toISOString()
+    });
 
-      dbManager.saveMockData(mock);
-      closeModal('modal-credito');
-      document.getElementById('form-credito').reset();
-      showToast(`¡Crédito de $${monto.toFixed(2)} asignado a ${user.nombre}!`, 'success');
-      refreshUI();
-    }
+    closeModal('modal-credito');
+    document.getElementById('form-credito').reset();
+    showToast(`¡Crédito de $${monto.toFixed(2)} asignado a ${user ? user.nombre : 'miembro'}!`, 'success');
+    await refreshUI();
   }
 
-  function handleAddGasto(e) {
+  async function handleAddGasto(e) {
     e.preventDefault();
     const targetUserId = document.getElementById('gasto-user-select').value;
     const catId = document.getElementById('gasto-category-select').value;
@@ -889,12 +883,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const mock = dbManager.getMockData();
-    const user = mock.profiles.find(p => p.id === targetUserId);
+    const data = await dbManager.loadData();
+    const user = data.profiles.find(p => p.id === targetUserId);
     if (!user) return;
 
     // Validar saldo de crédito disponible
-    const userGastos = mock.gastos.filter(g => g.profile_id === targetUserId);
+    const userGastos = data.gastos.filter(g => g.profile_id === targetUserId);
     const totalGastado = userGastos.reduce((sum, g) => sum + parseFloat(g.monto), 0);
     const credito = parseFloat(user.credito_asignado);
     const saldoDisponible = credito - totalGastado;
@@ -904,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!proceder) return;
     }
 
-    mock.gastos.push({
+    await dbManager.addGasto({
       id: 'gst-' + Date.now(),
       profile_id: targetUserId,
       categoria_id: catId,
@@ -913,14 +907,13 @@ document.addEventListener('DOMContentLoaded', () => {
       fecha: new Date().toISOString()
     });
 
-    dbManager.saveMockData(mock);
     closeModal('modal-gasto');
     document.getElementById('form-gasto').reset();
     showToast(`Gasto de $${monto.toFixed(2)} registrado correctamente`, 'success');
-    refreshUI();
+    await refreshUI();
   }
 
-  function handleAddUser(e) {
+  async function handleAddUser(e) {
     e.preventDefault();
     const nombre = document.getElementById('user-nombre').value.trim();
     const email = document.getElementById('user-email').value.trim();
@@ -935,8 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const mock = dbManager.getMockData();
-    mock.profiles.push({
+    await dbManager.addProfile({
       id: 'usr-' + Date.now(),
       nombre,
       email,
@@ -946,11 +938,81 @@ document.addEventListener('DOMContentLoaded', () => {
       avatar_color: randomColor
     });
 
-    dbManager.saveMockData(mock);
     closeModal('modal-usuario');
     document.getElementById('form-usuario').reset();
     showToast(`¡Nuevo miembro ${nombre} agregado con clave: "${password}"!`, 'success');
-    refreshUI();
+    await refreshUI();
+  }
+
+  async function handleEditUser(e) {
+    e.preventDefault();
+    const memberId = document.getElementById('edit-user-id').value;
+    const nombre = document.getElementById('edit-user-nombre').value.trim();
+    const email = document.getElementById('edit-user-email').value.trim();
+    const password = document.getElementById('edit-user-password').value.trim();
+    const rol = document.getElementById('edit-user-rol').value;
+    const credito = parseFloat(document.getElementById('edit-user-credito').value) || 0;
+
+    if (!nombre || !email || !password) {
+      showToast('Por favor completa todos los campos requeridos.', 'warning');
+      return;
+    }
+
+    await dbManager.updateProfile(memberId, {
+      nombre,
+      email,
+      password,
+      rol,
+      credito_asignado: credito
+    });
+
+    if (memberId === activeProfileId) {
+      currentRole = rol;
+    }
+
+    closeModal('modal-editar-usuario');
+    showToast(`¡Perfil de ${nombre} actualizado correctamente!`, 'success');
+    await refreshUI();
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    const memberId = document.getElementById('pwd-member-id').value;
+    const newPassword = document.getElementById('pwd-new-password').value.trim();
+
+    if (!newPassword) {
+      showToast('Por favor ingresa una nueva contraseña.', 'warning');
+      return;
+    }
+
+    await dbManager.updateProfile(memberId, { password: newPassword });
+    closeModal('modal-password');
+    showToast(`¡Contraseña actualizada correctamente!`, 'success');
+    await refreshUI();
+  }
+
+  async function handleDeleteUser(memberId, memberName) {
+    if (currentRole !== 'admin') {
+      showToast('Sólo el Administrador puede eliminar miembros.', 'warning');
+      return;
+    }
+
+    const data = await dbManager.loadData();
+    const targetUser = data.profiles.find(p => p.id === memberId);
+    if (!targetUser) return;
+
+    const confirmacion = confirm(`⚠️ ¿Estás seguro de eliminar a "${memberName}" del hogar?\n\n- Su crédito asignado ($${parseFloat(targetUser.credito_asignado).toFixed(2)}) se reintegrará a la Caja Central.\n- Sus gastos históricos se mantendrán para auditoría del hogar.`);
+    
+    if (!confirmacion) return;
+
+    await dbManager.deleteProfile(memberId);
+
+    if (activeProfileId === memberId && data.profiles.length > 0) {
+      activeProfileId = data.profiles[0].id;
+    }
+
+    showToast(`Miembro "${memberName}" eliminado del hogar.`, 'info');
+    await refreshUI();
   }
 
   // ------------------------------------------------------------------
