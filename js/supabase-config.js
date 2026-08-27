@@ -112,9 +112,14 @@ class SupabaseManager {
   }
 
   getMockData() {
+    // Responder desde la caché en memoria (0ms) siempre que exista,
+    // evitando releer y parsear todo el localStorage en cada render.
+    if (this.cachedData) return this.cachedData;
+
     this.ensureMockData();
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY_MOCK_DATA));
+      this.cachedData = JSON.parse(localStorage.getItem(STORAGE_KEY_MOCK_DATA));
+      return this.cachedData;
     } catch (e) {
       return DEFAULT_MOCK_DATA;
     }

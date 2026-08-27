@@ -166,10 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
       renderExpenses();
     });
 
+    let searchDebounceTimer = null;
     document.getElementById('filter-search')?.addEventListener('input', (e) => {
-      expenseFilters.searchQuery = e.target.value.toLowerCase().trim();
-      renderExpenses();
+      const value = e.target.value;
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        expenseFilters.searchQuery = value.toLowerCase().trim();
+        renderExpenses();
+      }, 250);
     });
+
+    // Exportar reporte de gastos filtrados a PDF
+    document.getElementById('btn-export-pdf')?.addEventListener('click', exportExpensesToPDF);
 
     // Abrir Modales
     document.getElementById('btn-open-ingreso-modal')?.addEventListener('click', () => openModal('modal-ingreso'));
@@ -512,41 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal('modal-editar-usuario');
   }
 
-  function handleEditUser(e) {
-    e.preventDefault();
-    const memberId = document.getElementById('edit-user-id').value;
-    const nombre = document.getElementById('edit-user-nombre').value.trim();
-    const email = document.getElementById('edit-user-email').value.trim();
-    const password = document.getElementById('edit-user-password').value.trim();
-    const rol = document.getElementById('edit-user-rol').value;
-    const credito = parseFloat(document.getElementById('edit-user-credito').value) || 0;
-
-    if (!nombre || !email || !password) {
-      showToast('Por favor completa todos los campos requeridos.', 'warning');
-      return;
-    }
-
-    const mock = dbManager.getMockData();
-    const user = mock.profiles.find(p => p.id === memberId);
-    if (user) {
-      user.nombre = nombre;
-      user.email = email;
-      user.password = password;
-      user.rol = rol;
-      user.credito_asignado = credito;
-
-      // Si el usuario editado es la sesión actual, actualizar rol en tiempo real
-      if (memberId === activeProfileId) {
-        currentRole = rol;
-      }
-
-      dbManager.saveMockData(mock);
-      closeModal('modal-editar-usuario');
-      showToast(`¡Perfil de ${nombre} actualizado correctamente!`, 'success');
-      refreshUI();
-    }
-  }
-
   function openChangePasswordModal(memberId, memberName) {
     document.getElementById('pwd-member-id').value = memberId;
     document.getElementById('pwd-member-name').value = memberName;
@@ -554,60 +527,9 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal('modal-password');
   }
 
-  function handleChangePassword(e) {
-    e.preventDefault();
-    const memberId = document.getElementById('pwd-member-id').value;
-    const newPassword = document.getElementById('pwd-new-password').value.trim();
-
-    if (!newPassword) {
-      showToast('Por favor ingresa una nueva contraseña.', 'warning');
-      return;
-    }
-
-    const mock = dbManager.getMockData();
-    const user = mock.profiles.find(p => p.id === memberId);
-    if (user) {
-      user.password = newPassword;
-      dbManager.saveMockData(mock);
-      closeModal('modal-password');
-      showToast(`¡Contraseña de ${user.nombre} actualizada correctamente!`, 'success');
-      refreshUI();
-    }
-  }
-
-  function handleDeleteUser(memberId, memberName) {
-    if (currentRole !== 'admin') {
-      showToast('Sólo el Administrador puede eliminar miembros.', 'warning');
-      return;
-    }
-
-    const mock = dbManager.getMockData();
-    const targetUser = mock.profiles.find(p => p.id === memberId);
-    if (!targetUser) return;
-
-    const confirmacion = confirm(`⚠️ ¿Estás seguro de eliminar a "${memberName}" del hogar?\n\n- Su crédito asignado ($${targetUser.credito_asignado.toFixed(2)}) se reintegrará a la Caja Central.\n- Sus gastos históricos se mantendrán para auditoría del hogar.`);
-    
-    if (!confirmacion) return;
-
-    // 1. Reintegrar o remover perfil
-    mock.profiles = mock.profiles.filter(p => p.id !== memberId);
-
-    // 2. Si el usuario activo eliminado era este perfil, cambiar al primer usuario disponible
-    if (activeProfileId === memberId && mock.profiles.length > 0) {
-      activeProfileId = mock.profiles[0].id;
-    }
-
-    dbManager.saveMockData(mock);
-    showToast(`Miembro "${memberName}" eliminado del hogar.`, 'info');
-    refreshUI();
-  }
-
-  function renderExpenses() {
-    const data = dbManager.getMockData();
-    const tbody = document.getElementById('expenses-table-body');
-    const cardsContainer = document.getElementById('expenses-mobile-cards');
-    if (!tbody) return;
-
+  // Aplica los filtros activos (miembro, categoría, fecha, búsqueda) sobre la lista de gastos.
+  // Se usa tanto para pintar la tabla como para generar el reporte en PDF, evitando duplicar la lógica.
+  function getFilteredExpenses(data) {
     let filtered = [...data.gastos];
 
     // Filtro por Miembro
@@ -637,13 +559,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filtro por Búsqueda de Texto
     if (expenseFilters.searchQuery) {
-      filtered = filtered.filter(g => 
+      filtered = filtered.filter(g =>
         g.descripcion.toLowerCase().includes(expenseFilters.searchQuery)
       );
     }
 
     // Ordenar de más reciente a más antiguo
     filtered.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    return filtered;
+  }
+
+  function renderExpenses() {
+    const data = dbManager.getMockData();
+    const tbody = document.getElementById('expenses-table-body');
+    const cardsContainer = document.getElementById('expenses-mobile-cards');
+    if (!tbody) return;
+
+    const filtered = getFilteredExpenses(data);
 
     // Contador de resultados
     const countEl = document.getElementById('expenses-filtered-count');
@@ -723,6 +656,76 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ------------------------------------------------------------------
+  // EXPORTACIÓN DE REPORTE DE GASTOS A PDF (jsPDF + AutoTable)
+  // ------------------------------------------------------------------
+  function exportExpensesToPDF() {
+    if (typeof window.jspdf === 'undefined') {
+      showToast('No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.', 'danger');
+      return;
+    }
+
+    const data = dbManager.getMockData();
+    const filtered = getFilteredExpenses(data);
+
+    if (filtered.length === 0) {
+      showToast('No hay gastos que coincidan con los filtros actuales para exportar.', 'warning');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+
+    // Encabezado del reporte
+    const fechaGeneracion = new Date().toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('HogarFinance — Reporte de Gastos', 40, 45);
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100);
+    doc.text(`Generado el ${fechaGeneracion}`, 40, 62);
+
+    // Descripción de los filtros activos aplicados al reporte
+    const memberLabel = expenseFilters.memberId === 'all'
+      ? 'Todos los miembros'
+      : (data.profiles.find(p => p.id === expenseFilters.memberId)?.nombre || 'Miembro');
+    const categoryLabel = expenseFilters.categoryId === 'all'
+      ? 'Todas las categorías'
+      : (data.categorias.find(c => c.id === expenseFilters.categoryId)?.nombre || 'Categoría');
+    const dateLabels = { all: 'Todo el historial', today: 'Hoy', week: 'Últimos 7 días', month: 'Últimos 30 días' };
+    const dateLabel = dateLabels[expenseFilters.dateRange] || 'Todo el historial';
+
+    doc.text(`Filtros: ${memberLabel} · ${categoryLabel} · ${dateLabel}`, 40, 76);
+
+    // Tabla de gastos
+    const rows = filtered.map(g => {
+      const user = data.profiles.find(p => p.id === g.profile_id) || { nombre: 'Desconocido' };
+      const cat = data.categorias.find(c => c.id === g.categoria_id) || { nombre: 'General' };
+      const fechaFormat = new Date(g.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return [fechaFormat, user.nombre, cat.nombre, g.descripcion, `$${parseFloat(g.monto).toFixed(2)}`];
+    });
+
+    const totalGastado = filtered.reduce((sum, g) => sum + parseFloat(g.monto), 0);
+
+    doc.autoTable({
+      startY: 92,
+      head: [['Fecha', 'Miembro', 'Categoría', 'Descripción', 'Monto']],
+      body: rows,
+      foot: [['', '', '', 'Total', `$${totalGastado.toFixed(2)}`]],
+      styles: { fontSize: 8, cellPadding: 5 },
+      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+      columnStyles: { 4: { halign: 'right' } },
+      margin: { left: 40, right: 40 }
+    });
+
+    const nombreArchivo = `reporte-gastos-hogarfinance-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(nombreArchivo);
+    showToast(`Reporte PDF generado: ${filtered.length} gastos, $${totalGastado.toFixed(2)} en total.`, 'success');
+  }
+
+  // ------------------------------------------------------------------
   // RENDERIZADO DE GRÁFICOS (CHART.JS)
   // ------------------------------------------------------------------
   function renderCharts() {
@@ -747,26 +750,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ctxCat = document.getElementById('chart-categories')?.getContext('2d');
     if (ctxCat) {
-      if (categoryChartInstance) categoryChartInstance.destroy();
-      categoryChartInstance = new Chart(ctxCat, {
-        type: 'doughnut',
-        data: {
-          labels: catLabels,
-          datasets: [{
-            data: catData,
-            backgroundColor: catColors,
-            borderWidth: 2,
-            borderColor: isDark ? '#1e293b' : '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', size: 11 } } }
+      if (categoryChartInstance) {
+        // Actualizar datos y colores en la instancia existente (evita destruir/recrear el canvas)
+        categoryChartInstance.data.labels = catLabels;
+        categoryChartInstance.data.datasets[0].data = catData;
+        categoryChartInstance.data.datasets[0].backgroundColor = catColors;
+        categoryChartInstance.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
+        categoryChartInstance.options.plugins.legend.labels.color = textColor;
+        categoryChartInstance.update();
+      } else {
+        categoryChartInstance = new Chart(ctxCat, {
+          type: 'doughnut',
+          data: {
+            labels: catLabels,
+            datasets: [{
+              data: catData,
+              backgroundColor: catColors,
+              borderWidth: 2,
+              borderColor: isDark ? '#1e293b' : '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', size: 11 } } }
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     // Gráfico 2: Créditos vs Gastos por Miembro (Bar Chart)
@@ -779,38 +791,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ctxMember = document.getElementById('chart-members')?.getContext('2d');
     if (ctxMember) {
-      if (memberChartInstance) memberChartInstance.destroy();
-      memberChartInstance = new Chart(ctxMember, {
-        type: 'bar',
-        data: {
-          labels: memberNames,
-          datasets: [
-            {
-              label: 'Crédito Asignado',
-              data: memberCredits,
-              backgroundColor: '#6366f1',
-              borderRadius: 6
-            },
-            {
-              label: 'Gastos Realizados',
-              data: memberExpenses,
-              backgroundColor: '#ef4444',
-              borderRadius: 6
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { ticks: { color: textColor } },
-            y: { ticks: { color: textColor } }
+      if (memberChartInstance) {
+        memberChartInstance.data.labels = memberNames;
+        memberChartInstance.data.datasets[0].data = memberCredits;
+        memberChartInstance.data.datasets[1].data = memberExpenses;
+        memberChartInstance.options.scales.x.ticks.color = textColor;
+        memberChartInstance.options.scales.y.ticks.color = textColor;
+        memberChartInstance.options.plugins.legend.labels.color = textColor;
+        memberChartInstance.update();
+      } else {
+        memberChartInstance = new Chart(ctxMember, {
+          type: 'bar',
+          data: {
+            labels: memberNames,
+            datasets: [
+              {
+                label: 'Crédito Asignado',
+                data: memberCredits,
+                backgroundColor: '#6366f1',
+                borderRadius: 6
+              },
+              {
+                label: 'Gastos Realizados',
+                data: memberExpenses,
+                backgroundColor: '#ef4444',
+                borderRadius: 6
+              }
+            ]
           },
-          plugins: {
-            legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', size: 11 } } }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { ticks: { color: textColor } },
+              y: { ticks: { color: textColor } }
+            },
+            plugins: {
+              legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', size: 11 } } }
+            }
           }
-        }
-      });
+        });
+      }
     }
   }
 
