@@ -4,6 +4,28 @@
 
 ---
 
+## ⚡ 0. Notas de la Actualización de Rendimiento (Léeme primero)
+
+Esta versión incluye optimizaciones de rendimiento, correcciones de responsividad y exportación de gastos a PDF:
+
+- **Tailwind CSS precompilado**: ya no se compila en el navegador (`cdn.tailwindcss.com`), sino que se sirve como `css/tailwind.css` ya generado. Esto elimina el retraso inicial de carga.
+- **Librerías auto-hospedadas**: Lucide, Chart.js, Supabase JS y jsPDF ahora viven en `js/vendor/` en vez de depender de CDNs externos (más rápido y no se rompe si un CDN falla).
+- **Búsqueda de gastos con debounce**: escribir en el buscador ya no re-renderiza toda la tabla en cada tecla.
+- **Caché de datos corregida**: se eliminó una relectura innecesaria de `localStorage` en cada render.
+- **Código duplicado eliminado**: ~90 líneas de funciones repetidas en `app.js`.
+- **Gráficos optimizados**: se actualizan en vez de destruirse y recrearse en cada cambio.
+- **Exportar PDF**: nuevo botón "Exportar PDF" en el Explorador de Gastos que genera un reporte respetando los filtros activos (miembro, categoría, fecha, búsqueda).
+
+### Si necesitas modificar los estilos (Tailwind)
+El CSS ya viene compilado en `css/tailwind.css`, listo para usar. Si en el futuro cambias clases de Tailwind en el HTML/JS y necesitas regenerarlo:
+
+```bash
+npm install          # instala tailwindcss (una sola vez)
+npm run build:css    # regenera css/tailwind.css
+```
+
+---
+
 ## 🔑 1. Acceso Inicial al Sistema (Admin Daniel)
 
 - **Correo Electrónico**: `daniel@hogar.com`

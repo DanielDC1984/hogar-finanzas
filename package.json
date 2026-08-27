@@ -1,0 +1,10 @@
+{
+  "name": "hogar-finanzas",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./src-input.css -o ./css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3"
+  }
+}
