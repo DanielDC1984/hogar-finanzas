@@ -1,0 +1,190 @@
+/* ====================================================================
+   ESTILOS PERSONALIZADOS & DISEÑO DE ALTO IMPACTO (HOGARFINANCE)
+   ==================================================================== */
+
+:root {
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --bg-gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  --bg-card-glass-dark: rgba(30, 41, 59, 0.7);
+  --border-glass-dark: rgba(255, 255, 255, 0.08);
+  
+  --bg-gradient-light: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f1f5f9 100%);
+  --bg-card-glass-light: rgba(255, 255, 255, 0.8);
+  --border-glass-light: rgba(0, 0, 0, 0.06);
+
+  --accent-primary: #6366f1;
+  --accent-success: #10b981;
+  --accent-warning: #f59e0b;
+  --accent-danger: #ef4444;
+}
+
+body {
+  font-family: var(--font-main);
+  transition: background 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+body.dark {
+  background: var(--bg-gradient-dark);
+  color: #f8fafc;
+}
+
+body.light {
+  background: var(--bg-gradient-light);
+  color: #0f172a;
+}
+
+/* Reglas de Alto Contraste para Formulario e Inputs */
+input, select, textarea {
+  color: #f8fafc !important;
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.9 !important;
+}
+
+select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+body.light input, body.light select, body.light textarea {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Ecosistema Glassmorphism */
+.glass-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 1rem;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+body.dark .glass-card {
+  background: var(--bg-card-glass-dark);
+  border: 1px solid var(--border-glass-dark);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+body.light .glass-card {
+  background: var(--bg-card-glass-light);
+  border: 1px solid var(--border-glass-light);
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.12);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+}
+
+body.dark .glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 15px 35px -10px rgba(99, 102, 241, 0.25);
+}
+
+body.light .glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 15px 35px -10px rgba(99, 102, 241, 0.2);
+}
+
+/* Modales con desenfoque de fondo */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-container {
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-overlay.active .modal-container {
+  transform: scale(1) translateY(0);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Badges con gradientes vibrantes */
+.badge-admin {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.badge-member {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.badge-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+/* Efectos de pulso de saldo */
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.pulse-card {
+  animation: pulse-subtle 4s infinite ease-in-out;
+}
+
+/* Responsividad para móviles */
+@media (max-width: 640px) {
+  .table-responsive-cards thead {
+    display: none;
+  }
+}
