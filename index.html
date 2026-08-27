@@ -97,47 +97,47 @@
     </div>
   </div>
 
-  <!-- ENCABEZADO DE NAVEGACIÓN -->
-  <header class="sticky top-0 z-40 backdrop-blur-md bg-slate-900/80 border-b border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <!-- ENCABEZADO DE NAVEGACIÓN (RESPONSIVO MÓVIL) -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-slate-900/90 border-b border-slate-800 w-full overflow-x-hidden">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
       
       <!-- LOGO & TITULO -->
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-          <i data-lucide="home" class="w-5 h-5"></i>
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+          <i data-lucide="home" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
         <div>
-          <h1 class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
-            HogarFinance <span class="text-xs font-normal text-indigo-400">v2.0</span>
+          <h1 class="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent leading-tight">
+            HogarFinance
           </h1>
-          <p class="text-[11px] opacity-60 hidden sm:block">Administración Económica del Hogar</p>
+          <p class="text-[10px] opacity-60 hidden sm:block">Control Económico Familiar</p>
         </div>
       </div>
 
       <!-- PERFIL DE USUARIO LOGUEADO & SALIR -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
         
         <!-- Indicador de Estado DB -->
-        <button id="btn-open-supabase-modal" class="hidden sm:flex items-center">
+        <button id="btn-open-supabase-modal" class="flex items-center">
           <div id="db-status-badge"></div>
         </button>
 
         <!-- Perfil Activo Badge -->
-        <div id="logged-user-profile-badge" class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+        <div id="logged-user-profile-badge" class="flex items-center gap-1.5 bg-slate-800/80 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 max-w-[120px] sm:max-w-none truncate">
           <!-- Cargado dinámicamente -->
         </div>
 
         <!-- Role Badge -->
-        <div id="header-role-badge"></div>
+        <div id="header-role-badge" class="hidden xs:block"></div>
 
         <!-- Botón Cerrar Sesión -->
-        <button id="btn-logout" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition" title="Cerrar Sesión">
-          <i data-lucide="log-out" class="w-5 h-5"></i>
+        <button id="btn-logout" class="p-1.5 sm:p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition" title="Cerrar Sesión">
+          <i data-lucide="log-out" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </button>
 
         <!-- Toggle Modo Oscuro/Claro -->
-        <button id="theme-toggle-btn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
-          <i data-lucide="sun" class="w-5 h-5 text-amber-400"></i>
+        <button id="theme-toggle-btn" class="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          <i data-lucide="sun" class="w-4 h-4 sm:w-5 sm:h-5 text-amber-400"></i>
         </button>
       </div>
 
@@ -147,32 +147,32 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-    <!-- BARRA SUPERIOR DE ACCIONES RÁPIDAS -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
+    <!-- BARRA SUPERIOR DE ACCIONES RÁPIDAS (RESPONSIVO) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h2 class="text-2xl font-bold tracking-tight">Panel de Control del Hogar</h2>
-        <p class="text-sm opacity-60">Resumen financiero, presupuestos asignados y registro de consumos.</p>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">Panel de Control del Hogar</h2>
+        <p class="text-xs sm:text-sm opacity-60">Resumen financiero, presupuestos asignados y registro de consumos.</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
         <!-- Acciones Exclusivas de Administrador -->
-        <button id="btn-open-ingreso-modal" class="admin-only px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+        <button id="btn-open-ingreso-modal" class="admin-only px-3 sm:px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 transition">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>Registrar Ingreso</span>
+          <span>Ingreso</span>
         </button>
 
-        <button id="btn-open-credito-modal" class="admin-only px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-amber-600/20 transition">
+        <button id="btn-open-credito-modal" class="admin-only px-3 sm:px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-amber-600/20 transition">
           <i data-lucide="credit-card" class="w-4 h-4"></i>
-          <span>Asignar Crédito</span>
+          <span>Crédito</span>
         </button>
 
-        <button id="btn-open-user-modal" class="admin-only px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm flex items-center gap-2 transition">
+        <button id="btn-open-user-modal" class="admin-only px-3 sm:px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition">
           <i data-lucide="user-plus" class="w-4 h-4 text-indigo-400"></i>
-          <span class="hidden sm:inline">Nuevo Miembro</span>
+          <span>Miembro</span>
         </button>
 
         <!-- Acción para Cualquier Miembro -->
-        <button id="btn-open-gasto-modal" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition">
+        <button id="btn-open-gasto-modal" class="px-3 sm:px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/30 transition col-span-2 sm:col-span-1">
           <i data-lucide="shopping-bag" class="w-4 h-4"></i>
           <span>Registrar Gasto</span>
         </button>
@@ -252,13 +252,13 @@
       </div>
     </div>
 
-    <!-- SECCIÓN EXPLORADOR DE GASTOS GLOBAL (CON FILTROS ESPECIALES) -->
-    <div class="p-6 rounded-2xl glass-card space-y-5">
+    <!-- SECCIÓN EXPLORADOR DE GASTOS GLOBAL (RESPONSIVO MÓVIL) -->
+    <div class="p-4 sm:p-6 rounded-2xl glass-card space-y-5 w-full overflow-hidden">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/40 pb-4">
         <div>
           <div class="flex items-center gap-2">
             <i data-lucide="search" class="w-5 h-5 text-indigo-400"></i>
-            <h3 class="font-bold text-lg">Explorador Global de Gastos del Hogar</h3>
+            <h3 class="font-bold text-base sm:text-lg">Explorador Global de Gastos del Hogar</h3>
           </div>
           <p class="text-xs opacity-60">Transparencia total: Consulta los consumos de todos los miembros con filtros especiales.</p>
         </div>
@@ -267,8 +267,8 @@
         </span>
       </div>
 
-      <!-- FILTROS ESPECIALES -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-800/40 p-4 rounded-xl border border-slate-700/40">
+      <!-- FILTROS ESPECIALES (1 COLUMNA EN CELULAR) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-800/40 p-3 sm:p-4 rounded-xl border border-slate-700/40 w-full">
         
         <!-- Filtro: Miembro -->
         <div>
@@ -308,8 +308,8 @@
 
       </div>
 
-      <!-- TABLA DE GASTOS (DESKTOP) -->
-      <div class="hidden sm:block overflow-x-auto">
+      <!-- TABLA DE GASTOS (SÓLO DESKTOP) -->
+      <div class="hidden md:block overflow-x-auto w-full">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-slate-700 text-xs font-semibold uppercase tracking-wider opacity-60">
@@ -326,8 +326,8 @@
         </table>
       </div>
 
-      <!-- TARJETAS DE GASTOS (MÓVIL) -->
-      <div id="expenses-mobile-cards" class="sm:hidden grid grid-cols-1 gap-3">
+      <!-- TARJETAS DE GASTOS (VISTA MÓVIL 100% AJUSTADA) -->
+      <div id="expenses-mobile-cards" class="md:hidden grid grid-cols-1 gap-3 w-full">
         <!-- Cargado dinámicamente -->
       </div>
     </div>
